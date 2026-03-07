@@ -38,7 +38,7 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
-        "aliases": ["m5-20", "m5 x20", "m5_20", "m5 x 20"],
+        "aliases": ["m5-20"],
     },    
     "m6x12": {
         "name": "M6x12",
@@ -312,17 +312,18 @@ def calculate_body_dimensions_from_vertices(body):
         max_y = max(max_y, point.y * 10)  # Convert cm to mm
         max_z = max(max_z, point.z * 10)  # Convert cm to mm
 
-    # Calculate lengths in each direction
-    x = round(max_x - min_x, 2)
-    y = round(max_y - min_y, 2)
-    z = round(max_z - min_z, 2)
+    # Calculate lengths in each direction and sort descending for reporting.
+    dimensions = sorted(
+        [round(max_x - min_x, 2), round(max_y - min_y, 2), round(max_z - min_z, 2)],
+        reverse=True,
+    )
 
     # Format dimensions to only show decimals if needed
     format_dimension = lambda v: f"{v:.2f}".rstrip('0').rstrip('.')
-    x, y, z = map(format_dimension, (x, y, z))
+    x, y, z = map(format_dimension, dimensions)
 
     # Return the largest dimension and the dimensions in XxYxZ format
-    return format_dimension(max(float(x), float(y), float(z))), f"{x} x {y} x {z}"
+    return x, f"{x} x {y} x {z}"
 
 
 def normalize_name(s):
