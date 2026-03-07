@@ -1,5 +1,6 @@
 import adsk.core, adsk.fusion, traceback
 import csv
+import re
 
 
 CUSTOM_PARTS = {
@@ -30,7 +31,8 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
-    },
+        "aliases": ["m5-20", "m5 x20", "m5_20", "m5 x 20"],
+    },    
     "m6x12": {
         "name": "M6x12",
         "description": "",
@@ -66,6 +68,13 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": False,
     },
+    "m8x45": {
+        "name": "M8x45",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },    
     "x m5 threaded rod": {
         "name": "X M5 Threaded Rod",
         "description": "",
@@ -206,6 +215,20 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": 2,
     },
+    "hgh15ca": {
+        "name": "HGH15CA slider block",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },    
+    "hgw20cc": {
+        "name": "HGW20CC slider block",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },    
     "y 1610 ballscrew": {
         "name": "Y 1610 Ballscrew",
         "description": "",
@@ -295,7 +318,14 @@ def calculate_body_dimensions_from_vertices(body):
     return format_dimension(max(float(x), float(y), float(z))), f"{x} x {y} x {z}"
 
 
-def process_component(component, parts_list, custom_parts, visited_bodies):
+def normalize_name(s):
+    """Normalize a name for matching: lowercase and strip non-alphanumerics."""
+    if not s:
+        return ""
+    return re.sub(r'[^0-9a-z]', '', s.lower())
+
+
+def process_component(component, parts_list, custom_parts, visited_bodies, unrecognized_parts):
     """
     Processes a component and its bodies, aggregating counts for custom parts.
 
@@ -313,19 +343,32 @@ def process_component(component, parts_list, custom_parts, visited_bodies):
             continue
         visited_bodies.add(body.entityToken)
 
-        # Check for custom part matches
-        body_name_lower = body.name.lower()
+        # Check for custom part matches using normalization and optional aliases
+        body_name_norm = normalize_name(body.name)
         part_info = None
         for custom_key, custom_value in custom_parts.items():
-            if body_name_lower.startswith(custom_key):
-                part_info = custom_value
+            candidates = [custom_key]
+            if isinstance(custom_value, dict):
+                candidates += custom_value.get("aliases", []) or []
+            for cand in candidates:
+                if body_name_norm.startswith(normalize_name(cand)):
+                    part_info = custom_value
+                    break
+            if part_info:
                 break
 
-        if part_info is None:
-            continue  # Skip unmatched parts
-
-        # Calculate the largest dimension and XxYxZ dimensions
+        # Calculate the largest dimension and XxYxZ dimensions for reporting
         largest_dimension, xyz_dimensions = calculate_body_dimensions_from_vertices(body)
+
+        if part_info is None:
+            # Collect unrecognized parts (count by body name + dimensions)
+            display_name = body.name if body.name else "Unnamed Body"
+            key_unrec = (display_name, xyz_dimensions)
+            if key_unrec in unrecognized_parts:
+                unrecognized_parts[key_unrec] += 1
+            else:
+                unrecognized_parts[key_unrec] = 1
+            continue
 
         # Get dimensions and length based on custom parts configuration
         name = part_info["name"]
@@ -333,7 +376,7 @@ def process_component(component, parts_list, custom_parts, visited_bodies):
         length = largest_dimension if part_info.get("show_length", False) else None
         dimensions = xyz_dimensions if part_info.get("show_dimensions", False) else None
         override_quantity = part_info.get("override_quantity", False)
-        
+
         # Set quantity directly if override_quantity is provided
         quantity = override_quantity if override_quantity else 1
 
@@ -347,10 +390,10 @@ def process_component(component, parts_list, custom_parts, visited_bodies):
 
     # Process sub-components recursively
     for occurrence in component.occurrences:
-        process_component(occurrence.component, parts_list, custom_parts, visited_bodies)
+        process_component(occurrence.component, parts_list, custom_parts, visited_bodies, unrecognized_parts)
 
 
-def export_parts_list_to_csv(parts_list, custom_parts):
+def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts):
     """
     Exports the aggregated parts list to a CSV file.
 
@@ -396,6 +439,16 @@ def export_parts_list_to_csv(parts_list, custom_parts):
                             )
                             position += 1
 
+                # Write unrecognized parts (if any)
+                if unrecognized_parts:
+                    csv_writer.writerow([])
+                    csv_writer.writerow(["Unrecognized Parts (relevant if Fusion model changes, can be ignored)"])
+                    csv_writer.writerow(["Position", "Name", "Quantity", "Dimensions (mm)"])
+                    pos_unrec = 1
+                    for (name, dimensions), quantity in unrecognized_parts.items():
+                        csv_writer.writerow([pos_unrec, name, quantity, dimensions])
+                        pos_unrec += 1
+
             return file_path
         else:
             return None
@@ -421,12 +474,13 @@ def list_and_count_parts():
 
         parts_list = {}
         visited_bodies = set()  # Track visited bodies to avoid duplicates
+        unrecognized_parts = {}
 
         # Start processing from the root component
-        process_component(root_comp, parts_list, CUSTOM_PARTS, visited_bodies)
+        process_component(root_comp, parts_list, CUSTOM_PARTS, visited_bodies, unrecognized_parts)
 
         # Export the results to a CSV file
-        csv_path = export_parts_list_to_csv(parts_list, CUSTOM_PARTS)
+        csv_path = export_parts_list_to_csv(parts_list, CUSTOM_PARTS, unrecognized_parts)
         if csv_path:
             ui.messageBox(f"Parts list exported: {csv_path}")
         else:
