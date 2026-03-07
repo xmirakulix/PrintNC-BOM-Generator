@@ -332,7 +332,7 @@ def normalize_name(s):
     return re.sub(r'[^0-9a-z]', '', s.lower())
 
 
-def process_component(component, parts_list, custom_parts, visited_bodies, unrecognized_parts):
+def process_component(component, parts_list, custom_parts, unrecognized_parts):
     """
     Processes a component and its bodies, aggregating counts for custom parts.
 
@@ -340,15 +340,12 @@ def process_component(component, parts_list, custom_parts, visited_bodies, unrec
         component: The current Fusion 360 component being processed.
         parts_list: A dictionary to store aggregated counts for parts.
         custom_parts: A dictionary of custom part names and their properties.
-        visited_bodies: A set to track already processed bodies.
-
     Returns:
         None
     """
     for body in component.bRepBodies:
-        if not body.isVisible or body.entityToken in visited_bodies:
+        if not body.isVisible:
             continue
-        visited_bodies.add(body.entityToken)
 
         # Check for custom part matches using normalization and optional aliases
         body_name_norm = normalize_name(body.name)
@@ -397,7 +394,7 @@ def process_component(component, parts_list, custom_parts, visited_bodies, unrec
 
     # Process sub-components recursively
     for occurrence in component.occurrences:
-        process_component(occurrence.component, parts_list, custom_parts, visited_bodies, unrecognized_parts)
+        process_component(occurrence.component, parts_list, custom_parts, unrecognized_parts)
 
 
 def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts):
@@ -480,11 +477,10 @@ def list_and_count_parts():
         root_comp = design.rootComponent
 
         parts_list = {}
-        visited_bodies = set()  # Track visited bodies to avoid duplicates
         unrecognized_parts = {}
 
         # Start processing from the root component
-        process_component(root_comp, parts_list, CUSTOM_PARTS, visited_bodies, unrecognized_parts)
+        process_component(root_comp, parts_list, CUSTOM_PARTS, unrecognized_parts)
 
         # Export the results to a CSV file
         csv_path = export_parts_list_to_csv(parts_list, CUSTOM_PARTS, unrecognized_parts)
