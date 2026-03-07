@@ -403,7 +403,7 @@ def process_component(component, root_name, component_path, parts_by_root, custo
         process_component(occurrence.component, root_name, next_path, parts_by_root, custom_parts, unrecognized_by_root)
 
 
-def export_parts_list_to_csv(parts_by_root, custom_parts, unrecognized_by_root):
+def export_parts_list_to_csv(parts_by_root, custom_parts, unrecognized_by_root, model_name, cutting_area):
     """
     Exports the aggregated parts list to a CSV file.
 
@@ -428,6 +428,11 @@ def export_parts_list_to_csv(parts_by_root, custom_parts, unrecognized_by_root):
 
             with open(file_path, "w", newline="") as csvfile:
                 csv_writer = csv.writer(csvfile)
+
+                # Header section
+                csv_writer.writerow(["Model:", model_name])
+                csv_writer.writerow(["Cutting Area:", cutting_area])
+                csv_writer.writerow([])
 
                 # Write the header
                 csv_writer.writerow(["Root Component", "Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)"])
@@ -455,7 +460,7 @@ def export_parts_list_to_csv(parts_by_root, custom_parts, unrecognized_by_root):
                 # Write unrecognized parts (if any)
                 if unrecognized_by_root:
                     csv_writer.writerow([])
-                    csv_writer.writerow(["Unrecognized Parts (relevant if Fusion model changes, can be ignored)"])
+                    csv_writer.writerow(["Unrecognized Parts (relevant if Fusion model changes and can usually be ignored)"])
                     csv_writer.writerow(["Root Component", "Position", "Name", "Quantity", "Dimensions (mm)", "Path"])
                     for root_name, unrecognized_parts in unrecognized_by_root.items():
                         pos_unrec = 1
@@ -486,6 +491,21 @@ def list_and_count_parts():
             return
 
         root_comp = design.rootComponent
+        model_name = design.parentDocument.name if design.parentDocument else root_comp.name
+
+        def get_param_text(param_name):
+            param = None
+            if hasattr(design, "userParameters") and design.userParameters:
+                param = design.userParameters.itemByName(param_name)
+            if (param is None) and hasattr(design, "allParameters") and design.allParameters:
+                param = design.allParameters.itemByName(param_name)
+            if param is None:
+                return ""
+            return param.expression if hasattr(param, "expression") else str(param.value)
+
+        x_cutting_area = get_param_text("XCuttingArea")
+        y_cutting_area = get_param_text("YCuttingArea")
+        cutting_area = f"{x_cutting_area} x {y_cutting_area}"
 
         parts_by_root = {}
         unrecognized_by_root = {}
@@ -506,7 +526,7 @@ def list_and_count_parts():
             process_component(root_comp, root_comp.name, root_comp.name, parts_by_root, CUSTOM_PARTS, unrecognized_by_root)
 
         # Export the results to a CSV file
-        csv_path = export_parts_list_to_csv(parts_by_root, CUSTOM_PARTS, unrecognized_by_root)
+        csv_path = export_parts_list_to_csv(parts_by_root, CUSTOM_PARTS, unrecognized_by_root, model_name, cutting_area)
         if csv_path:
             ui.messageBox(f"Parts list exported: {csv_path}")
         else:
