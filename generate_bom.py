@@ -333,7 +333,7 @@ def normalize_name(s):
     return re.sub(r'[^0-9a-z]', '', s.lower())
 
 
-def process_component(component, root_name, parts_by_root, custom_parts, unrecognized_by_root):
+def process_component(component, root_name, component_path, parts_by_root, custom_parts, unrecognized_by_root):
     """
     Processes a component and its bodies, aggregating counts for custom parts.
 
@@ -369,7 +369,7 @@ def process_component(component, root_name, parts_by_root, custom_parts, unrecog
         if part_info is None:
             # Collect unrecognized parts (count by body name + dimensions)
             display_name = body.name if body.name else "Unnamed Body"
-            key_unrec = (display_name, xyz_dimensions)
+            key_unrec = (display_name, xyz_dimensions, component_path)
             root_unrec = unrecognized_by_root.setdefault(root_name, {})
             if key_unrec in root_unrec:
                 root_unrec[key_unrec] += 1
@@ -398,7 +398,9 @@ def process_component(component, root_name, parts_by_root, custom_parts, unrecog
 
     # Process sub-components recursively
     for occurrence in component.occurrences:
-        process_component(occurrence.component, root_name, parts_by_root, custom_parts, unrecognized_by_root)
+        occ_name = occurrence.name or occurrence.component.name
+        next_path = f"{component_path}->{occ_name}"
+        process_component(occurrence.component, root_name, next_path, parts_by_root, custom_parts, unrecognized_by_root)
 
 
 def export_parts_list_to_csv(parts_by_root, custom_parts, unrecognized_by_root):
@@ -454,11 +456,11 @@ def export_parts_list_to_csv(parts_by_root, custom_parts, unrecognized_by_root):
                 if unrecognized_by_root:
                     csv_writer.writerow([])
                     csv_writer.writerow(["Unrecognized Parts (relevant if Fusion model changes, can be ignored)"])
-                    csv_writer.writerow(["Root Component", "Position", "Name", "Quantity", "Dimensions (mm)"])
+                    csv_writer.writerow(["Root Component", "Position", "Name", "Quantity", "Dimensions (mm)", "Path"])
                     for root_name, unrecognized_parts in unrecognized_by_root.items():
                         pos_unrec = 1
-                        for (name, dimensions), quantity in unrecognized_parts.items():
-                            csv_writer.writerow([root_name, pos_unrec, name, quantity, dimensions])
+                        for (name, dimensions, path), quantity in unrecognized_parts.items():
+                            csv_writer.writerow([root_name, pos_unrec, name, quantity, dimensions, path])
                             pos_unrec += 1
                         csv_writer.writerow([])
 
@@ -493,6 +495,7 @@ def list_and_count_parts():
             process_component(
                 occurrence.component,
                 occurrence.name or occurrence.component.name,
+                occurrence.name or occurrence.component.name,
                 parts_by_root,
                 CUSTOM_PARTS,
                 unrecognized_by_root,
@@ -500,7 +503,7 @@ def list_and_count_parts():
 
         # Bodies directly in root component are grouped under the design root name.
         if root_comp.bRepBodies.count > 0:
-            process_component(root_comp, root_comp.name, parts_by_root, CUSTOM_PARTS, unrecognized_by_root)
+            process_component(root_comp, root_comp.name, root_comp.name, parts_by_root, CUSTOM_PARTS, unrecognized_by_root)
 
         # Export the results to a CSV file
         csv_path = export_parts_list_to_csv(parts_by_root, CUSTOM_PARTS, unrecognized_by_root)
