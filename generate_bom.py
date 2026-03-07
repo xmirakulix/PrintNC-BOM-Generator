@@ -4,6 +4,13 @@ import re
 
 
 CUSTOM_PARTS = {
+    "m4x8 Pan Head": {
+        "name": "M4x8 Pan Head",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
     "m4x12": {
         "name": "M4x12",
         "description": "",
