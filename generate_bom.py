@@ -138,55 +138,6 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": False,
     },
-    "xframe tubing": {
-        "name": "XFrame Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "yframe tubing": {
-        "name": "YFrame Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "yroller tubing": {
-        "name": "YRoller Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "yroller brace": {
-        "name": "YRoller Brace",
-        "description": "",
-        "show_length": False,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "xgantry tubing": {
-        "name": "XGantry Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "xroller tubing": {
-        "name": "XRoller Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "xroller angle": {
-        "name": "XRoller Angle",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
     "x hgr20 rail": {
         "name": "X HGR20 Rail",
         "description": "",
@@ -283,6 +234,55 @@ CUSTOM_PARTS = {
         "description": "",
         "show_length": True,
         "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "xframe tubing": {
+        "name": "Steel: X Frame Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "yframe tubing": {
+        "name": "Steel: Y Frame Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "yroller tubing": {
+        "name": "Steel: Y Roller Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "yroller brace": {
+        "name": "Steel: Y Roller Brace",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "xgantry tubing": {
+        "name": "Steel: X Gantry Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "xroller tubing": {
+        "name": "Steel: X Roller Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "xroller angle": {
+        "name": "Steel: X Roller Angle",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
         "override_quantity": False,
     },
 }
@@ -454,7 +454,9 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts, model
                 # Write unrecognized parts (if any)
                 if unrecognized_parts:
                     csv_writer.writerow([])
-                    csv_writer.writerow(["Unrecognized Parts (relevant if Fusion model changes and can usually be ignored)"])
+                    csv_writer.writerow([])
+                    csv_writer.writerow([])
+                    csv_writer.writerow(["Unrecognized Parts (only relevant if Fusion model changes and can usually be ignored)"])
                     csv_writer.writerow(["Position", "Name", "Quantity", "Dimensions (mm)", "Path"])
                     pos_unrec = 1
                     for (name, dimensions, path), quantity in unrecognized_parts.items():
