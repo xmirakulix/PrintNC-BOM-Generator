@@ -457,10 +457,10 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts, model
                     csv_writer.writerow([])
                     csv_writer.writerow([])
                     csv_writer.writerow(["Unrecognized Parts (only relevant if Fusion model changes and can usually be ignored)"])
-                    csv_writer.writerow(["Position", "Name", "Quantity", "Dimensions (mm)", "Path"])
+                    csv_writer.writerow(["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)", "Path"])
                     pos_unrec = 1
                     for (name, dimensions, path), quantity in unrecognized_parts.items():
-                        csv_writer.writerow([pos_unrec, name, quantity, dimensions, path])
+                        csv_writer.writerow([pos_unrec, name, "", quantity, "", dimensions, path])
                         pos_unrec += 1
 
             return file_path
