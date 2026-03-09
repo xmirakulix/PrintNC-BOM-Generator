@@ -397,7 +397,7 @@ def process_component(component, component_path, parts_list, custom_parts, unrec
     # Process sub-components recursively
     for occurrence in component.occurrences:
         occ_name = occurrence.name or occurrence.component.name
-        next_path = f"{component_path}->{occ_name}"
+        next_path = f"{component_path}->{occ_name}" if component_path else occ_name
         process_component(occurrence.component, next_path, parts_list, custom_parts, unrecognized_parts)
 
 
@@ -504,8 +504,8 @@ def list_and_count_parts():
         parts_list = {}
         unrecognized_parts = {}
 
-        # Process full assembly from root component.
-        process_component(root_comp, root_comp.name, parts_list, CUSTOM_PARTS, unrecognized_parts)
+        # Process full assembly from root component, but omit root name in reported sub-paths.
+        process_component(root_comp, "", parts_list, CUSTOM_PARTS, unrecognized_parts)
 
         # Export the results to a CSV file
         csv_path = export_parts_list_to_csv(parts_list, CUSTOM_PARTS, unrecognized_parts, model_name, cutting_area)
