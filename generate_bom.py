@@ -236,6 +236,13 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": False,
     },
+    "80mm spindle clamp": {
+        "name": "80mm Spindle Clamp",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
     "xframe tubing": {
         "name": "Steel: X Frame Tubing",
         "description": "",
