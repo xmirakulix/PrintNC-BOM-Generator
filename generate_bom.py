@@ -38,7 +38,7 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
-        "aliases": ["m5-20", "m5 x20", "m5_20", "m5 x 20"],
+        "aliases": ["m5-20"],
     },    
     "m6x12": {
         "name": "M6x12",
@@ -136,55 +136,6 @@ CUSTOM_PARTS = {
         "description": "",
         "show_length": False,
         "show_dimensions": False,
-        "override_quantity": False,
-    },
-    "xframe tubing": {
-        "name": "XFrame Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "yframe tubing": {
-        "name": "YFrame Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "yroller tubing": {
-        "name": "YRoller Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "yroller brace": {
-        "name": "YRoller Brace",
-        "description": "",
-        "show_length": False,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "xgantry tubing": {
-        "name": "XGantry Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "xroller tubing": {
-        "name": "XRoller Tubing",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
-        "override_quantity": False,
-    },
-    "xroller angle": {
-        "name": "XRoller Angle",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": True,
         "override_quantity": False,
     },
     "x hgr20 rail": {
@@ -285,6 +236,62 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": False,
     },
+    "80mm spindle clamp": {
+        "name": "80mm Spindle Clamp",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "xframe tubing": {
+        "name": "Steel: X Frame Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "yframe tubing": {
+        "name": "Steel: Y Frame Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "yroller tubing": {
+        "name": "Steel: Y Roller Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "yroller brace": {
+        "name": "Steel: Y Roller Brace",
+        "description": "",
+        "show_length": False,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "xgantry tubing": {
+        "name": "Steel: X Gantry Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "xroller tubing": {
+        "name": "Steel: X Roller Tubing",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
+    "xroller angle": {
+        "name": "Steel: X Roller Angle",
+        "description": "",
+        "show_length": True,
+        "show_dimensions": True,
+        "override_quantity": False,
+    },
 }
 
 
@@ -312,17 +319,18 @@ def calculate_body_dimensions_from_vertices(body):
         max_y = max(max_y, point.y * 10)  # Convert cm to mm
         max_z = max(max_z, point.z * 10)  # Convert cm to mm
 
-    # Calculate lengths in each direction
-    x = round(max_x - min_x, 2)
-    y = round(max_y - min_y, 2)
-    z = round(max_z - min_z, 2)
+    # Calculate lengths in each direction and sort descending for reporting.
+    dimensions = sorted(
+        [round(max_x - min_x, 2), round(max_y - min_y, 2), round(max_z - min_z, 2)],
+        reverse=True,
+    )
 
     # Format dimensions to only show decimals if needed
     format_dimension = lambda v: f"{v:.2f}".rstrip('0').rstrip('.')
-    x, y, z = map(format_dimension, (x, y, z))
+    x, y, z = map(format_dimension, dimensions)
 
     # Return the largest dimension and the dimensions in XxYxZ format
-    return format_dimension(max(float(x), float(y), float(z))), f"{x} x {y} x {z}"
+    return x, f"{x} x {y} x {z}"
 
 
 def normalize_name(s):
@@ -332,23 +340,21 @@ def normalize_name(s):
     return re.sub(r'[^0-9a-z]', '', s.lower())
 
 
-def process_component(component, parts_list, custom_parts, visited_bodies, unrecognized_parts):
+def process_component(component, component_path, parts_list, custom_parts, unrecognized_parts):
     """
     Processes a component and its bodies, aggregating counts for custom parts.
 
     Args:
         component: The current Fusion 360 component being processed.
+        component_path: Full component path for reporting.
         parts_list: A dictionary to store aggregated counts for parts.
         custom_parts: A dictionary of custom part names and their properties.
-        visited_bodies: A set to track already processed bodies.
-
     Returns:
         None
     """
     for body in component.bRepBodies:
-        if not body.isVisible or body.entityToken in visited_bodies:
+        if not body.isVisible:
             continue
-        visited_bodies.add(body.entityToken)
 
         # Check for custom part matches using normalization and optional aliases
         body_name_norm = normalize_name(body.name)
@@ -368,9 +374,13 @@ def process_component(component, parts_list, custom_parts, visited_bodies, unrec
         largest_dimension, xyz_dimensions = calculate_body_dimensions_from_vertices(body)
 
         if part_info is None:
+            # Ignore unrecognized parts that are part of the printed-milled parts assembly or printed drill guides.
+            if component_path and ("printed-milled parts:1" in component_path.lower() or "printed drill guides:1" in component_path.lower()):
+                continue
+
             # Collect unrecognized parts (count by body name + dimensions)
             display_name = body.name if body.name else "Unnamed Body"
-            key_unrec = (display_name, xyz_dimensions)
+            key_unrec = (display_name, xyz_dimensions, component_path)
             if key_unrec in unrecognized_parts:
                 unrecognized_parts[key_unrec] += 1
             else:
@@ -397,10 +407,12 @@ def process_component(component, parts_list, custom_parts, visited_bodies, unrec
 
     # Process sub-components recursively
     for occurrence in component.occurrences:
-        process_component(occurrence.component, parts_list, custom_parts, visited_bodies, unrecognized_parts)
+        occ_name = occurrence.name or occurrence.component.name
+        next_path = f"{component_path}->{occ_name}" if component_path else occ_name
+        process_component(occurrence.component, next_path, parts_list, custom_parts, unrecognized_parts)
 
 
-def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts):
+def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts, model_name, cutting_area):
     """
     Exports the aggregated parts list to a CSV file.
 
@@ -426,10 +438,14 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts):
             with open(file_path, "w", newline="") as csvfile:
                 csv_writer = csv.writer(csvfile)
 
+                # Header section
+                csv_writer.writerow(["Model:", model_name])
+                csv_writer.writerow(["Cutting Area:", cutting_area])
+                csv_writer.writerow([])
+
                 # Write the header
                 csv_writer.writerow(["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)"])
 
-                # Sort parts by the custom_parts dictionary order
                 position = 1
                 for custom_key in custom_parts.keys():
                     for (name, description, length, dimensions), quantity in parts_list.items():
@@ -449,11 +465,13 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts):
                 # Write unrecognized parts (if any)
                 if unrecognized_parts:
                     csv_writer.writerow([])
-                    csv_writer.writerow(["Unrecognized Parts (relevant if Fusion model changes, can be ignored)"])
-                    csv_writer.writerow(["Position", "Name", "Quantity", "Dimensions (mm)"])
+                    csv_writer.writerow([])
+                    csv_writer.writerow([])
+                    csv_writer.writerow(["Unrecognized Parts (only relevant if Fusion model changes and can usually be ignored)"])
+                    csv_writer.writerow(["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)", "Path"])
                     pos_unrec = 1
-                    for (name, dimensions), quantity in unrecognized_parts.items():
-                        csv_writer.writerow([pos_unrec, name, quantity, dimensions])
+                    for (name, dimensions, path), quantity in unrecognized_parts.items():
+                        csv_writer.writerow([pos_unrec, name, "", quantity, "", dimensions, path])
                         pos_unrec += 1
 
             return file_path
@@ -478,16 +496,30 @@ def list_and_count_parts():
             return
 
         root_comp = design.rootComponent
+        model_name = design.parentDocument.name if design.parentDocument else root_comp.name
+
+        def get_param_text(param_name):
+            param = None
+            if hasattr(design, "userParameters") and design.userParameters:
+                param = design.userParameters.itemByName(param_name)
+            if (param is None) and hasattr(design, "allParameters") and design.allParameters:
+                param = design.allParameters.itemByName(param_name)
+            if param is None:
+                return ""
+            return param.expression if hasattr(param, "expression") else str(param.value)
+
+        x_cutting_area = get_param_text("XCuttingArea")
+        y_cutting_area = get_param_text("YCuttingArea")
+        cutting_area = f"{x_cutting_area} x {y_cutting_area}"
 
         parts_list = {}
-        visited_bodies = set()  # Track visited bodies to avoid duplicates
         unrecognized_parts = {}
 
-        # Start processing from the root component
-        process_component(root_comp, parts_list, CUSTOM_PARTS, visited_bodies, unrecognized_parts)
+        # Process full assembly from root component, but omit root name in reported sub-paths.
+        process_component(root_comp, "", parts_list, CUSTOM_PARTS, unrecognized_parts)
 
         # Export the results to a CSV file
-        csv_path = export_parts_list_to_csv(parts_list, CUSTOM_PARTS, unrecognized_parts)
+        csv_path = export_parts_list_to_csv(parts_list, CUSTOM_PARTS, unrecognized_parts, model_name, cutting_area)
         if csv_path:
             ui.messageBox(f"Parts list exported: {csv_path}")
         else:
