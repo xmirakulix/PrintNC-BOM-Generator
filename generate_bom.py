@@ -545,6 +545,8 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts, model
             file_path = file_dialog.filename
 
             with open(file_path, "w", newline="") as csvfile:
+                # Tell Excel to use commas regardless of the system list separator.
+                csvfile.write("sep=,\n")
                 csv_writer = csv.writer(csvfile)
 
                 # Header section
