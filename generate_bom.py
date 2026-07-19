@@ -357,8 +357,7 @@ CUSTOM_PARTS = {
         "description": "Inductive limit sensor",
         "show_length": False,
         "show_dimensions": False,
-        # The Y-axis sensor body is generically named "Body1" in V4.0.37.
-        "override_quantity": 4,
+        "override_quantity": False,
     },
     "80mm 3 hole spindle clamp": {
         "name": "80mm 3-Hole Spindle Clamp",
