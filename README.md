@@ -5,6 +5,7 @@ A Python-based tool to automate the creation of detailed Bills of Materials (BOM
 ---
 
 ## Features
+
 - **Automated BOM Generation**: Automatically scans components and generates a detailed BOM.
 - **Customizable Part Data**: Use a configurable dictionary to manage part names, descriptions, and display options.
 - **Dimension and Length Calculation**: Calculates the largest dimension or detailed dimensions (XxYxZ) for parts based on configuration.
@@ -33,13 +34,16 @@ Either ollow the fusion 360 manual for creating a new script (https://help.autod
 ## Configuration
 
 The tool uses a configurable `custom_parts` dictionary to define:
+
 - **Part Name**: A readable name for the part (e.g., `"M5 Nut"`).
 - **Description**: Additional information about the part.
 - **Show Length**: Whether to display the largest dimension (`True` or `False`).
 - **Show Dimensions**: Whether to display full dimensions in `XxYxZ` format (`True` or `False`).
 - **Override Quantity**: If `False` the quantity will be aggregated, else if an integer value greater `0` is provided, the given value will be used for the quantity of this parts.
+- **Category**: Optional `"purchased"` or `"fabricated"`; defaults to `"purchased"`.
 
 ### Example `custom_parts` Entry
+
 ```python
 custom_parts = {
     "m5 nut": {
@@ -55,6 +59,7 @@ custom_parts = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "1z hgr20 rail": {
         "name": "1Z HGR20 Rail",
@@ -68,12 +73,13 @@ custom_parts = {
 ---
 
 ## Output
+
 The exported CSV file includes the following columns:
 
-| **Position** | **Name**             | **Description**                | **Quantity** | **Length (mm)** | **Dimensions (mm)** |
-|--------------|----------------------|---------------------------------|--------------|-----------------|---------------------|
-| 1            | M5 Threaded Rod      | Threaded rod with M5 thread    | 5            | 300.0           |                     |
-| 2            | XFrame Tubing        | Tubing for the X-axis frame    | 2            | 500.0           | 500.0x50.0x50.0    |
+| **Position** | **Name**        | **Description**             | **Quantity** | **Length (mm)** | **Dimensions (mm)** |
+| ------------ | --------------- | --------------------------- | ------------ | --------------- | ------------------- |
+| 1            | M5 Threaded Rod | Threaded rod with M5 thread | 5            | 300.0           |                     |
+| 2            | XFrame Tubing   | Tubing for the X-axis frame | 2            | 500.0           | 500.0x50.0x50.0     |
 
 ---
 
