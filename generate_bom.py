@@ -323,6 +323,7 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xrollershim": {
         "name": "X Roller Shim",
@@ -330,6 +331,7 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xframe tubing": {
         "name": "Steel: X Frame Tubing",
@@ -337,6 +339,7 @@ CUSTOM_PARTS = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "yframe tubing": {
         "name": "Steel: Y Frame Tubing",
@@ -344,6 +347,7 @@ CUSTOM_PARTS = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "yroller tubing": {
         "name": "Steel: Y Roller Tubing",
@@ -351,6 +355,7 @@ CUSTOM_PARTS = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "yroller brace": {
         "name": "Steel: Y Roller Brace",
@@ -358,6 +363,7 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xgantry tubing": {
         "name": "Steel: X Gantry Tubing",
@@ -365,6 +371,7 @@ CUSTOM_PARTS = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xroller tubing": {
         "name": "Steel: X Roller Tubing",
@@ -372,6 +379,7 @@ CUSTOM_PARTS = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xroller angle": {
         "name": "Steel: X Roller Angle",
@@ -379,6 +387,7 @@ CUSTOM_PARTS = {
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
 }
 
@@ -539,28 +548,42 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts, model
                 csv_writer = csv.writer(csvfile)
 
                 # Header section
-                csv_writer.writerow(["Model:", model_name])
-                csv_writer.writerow(["Cutting Area:", cutting_area])
+                csv_writer.writerow([f"Model: {model_name}"])
+                csv_writer.writerow([f"Cutting Area: {cutting_area}"])
                 csv_writer.writerow([])
 
-                # Write the header
-                csv_writer.writerow(["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)"])
+                def write_parts_section(title, category):
+                    csv_writer.writerow([title])
+                    csv_writer.writerow(
+                        ["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)"]
+                    )
 
-                position = 1
-                for custom_key in custom_parts.keys():
-                    for (name, description, length, dimensions), quantity in parts_list.items():
-                        if name == custom_parts[custom_key]["name"]:
-                            csv_writer.writerow(
-                                [
-                                    position,
-                                    name,
-                                    description,
-                                    quantity,
-                                    length if length is not None else "",
-                                    dimensions if dimensions is not None else "",
-                                ]
-                            )
-                            position += 1
+                    position = 1
+                    for custom_key, custom_part in custom_parts.items():
+                        if custom_part.get("category", "purchased") != category:
+                            continue
+
+                        for (name, description, length, dimensions), quantity in parts_list.items():
+                            if name == custom_part["name"]:
+                                csv_writer.writerow(
+                                    [
+                                        position,
+                                        name,
+                                        description,
+                                        quantity,
+                                        length if length is not None else "",
+                                        dimensions if dimensions is not None else "",
+                                    ]
+                                )
+                                position += 1
+
+                write_parts_section("Purchased Components", "purchased")
+                csv_writer.writerow([])
+                csv_writer.writerow([])
+                write_parts_section(
+                    "Locally Sourced & Fabricated Parts",
+                    "fabricated",
+                )
 
                 # Write unrecognized parts (if any)
                 if unrecognized_parts:
