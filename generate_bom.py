@@ -244,9 +244,37 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": False,
     },
+    "hm15-57": {
+        "name": "HM15-57 Ballscrew Mount",
+        "description": "2010 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
     "hm10-57": {
         "name": "HM10-57 Ballscrew Mount",
         "description": "1204 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bk10": {
+        "name": "BK10 Ballscrew Mount",
+        "description": "1204 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bk12": {
+        "name": "BK12 Ballscrew Mount",
+        "description": "1610 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bk15": {
+        "name": "BK15 Ballscrew Mount",
+        "description": "2010 ballscrew fixed mount",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
@@ -258,8 +286,22 @@ CUSTOM_PARTS = {
         "show_dimensions": False,
         "override_quantity": False,
     },
+    "bf15": {
+        "name": "BF15 Ballscrew Mount",
+        "description": "2010 ballscrew support mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
     "d30l40 8-10mm coupler": {
         "name": "D30L40 8-10mm Coupler",
+        "description": "Motor-to-ballscrew coupler",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "d30l40 8-12mm coupler": {
+        "name": "D30L40 8-12mm Coupler",
         "description": "Motor-to-ballscrew coupler",
         "show_length": False,
         "show_dimensions": False,
@@ -278,6 +320,14 @@ CUSTOM_PARTS = {
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
+    },
+    "sfu2010 nut": {
+        "name": "SFU2010 Ballscrew Nut",
+        "description": "2010 ballscrew nut",
+        "show_length": False,
+        "show_dimensions": False,
+        # The X-axis nut body is generically named "Body1" in V4.0.37.
+        "override_quantity": 3,
     },
     # Keep the more specific nut-block entry before the nut entry because names
     # are matched by prefix after normalization.
@@ -328,6 +378,14 @@ CUSTOM_PARTS = {
     "xrollershim": {
         "name": "X Roller Shim",
         "description": "X-roller alignment shim",
+        "show_length": False,
+        "show_dimensions": True,
+        "override_quantity": False,
+        "category": "fabricated",
+    },
+    "1z plate": {
+        "name": "1Z Plate",
+        "description": "Single-carriage Z plate",
         "show_length": False,
         "show_dimensions": True,
         "override_quantity": False,
