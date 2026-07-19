@@ -3,6 +3,14 @@ import csv
 import re
 
 
+IGNORED_COMPONENT_PATH_PARTS = (
+    "cutting area",
+    "plywood",
+    "printed-milled parts:1",
+    "printed drill guides:1",
+)
+
+
 CUSTOM_PARTS = {
     "m4x8 Pan Head": {
         "name": "M4x8 Pan Head",
@@ -450,6 +458,11 @@ def process_component(component, component_path, parts_list, custom_parts, unrec
     Returns:
         None
     """
+    # Reference geometry, temporary parts, and fabrication guides are not BOM items.
+    component_path_lower = component_path.lower()
+    if any(path_part in component_path_lower for path_part in IGNORED_COMPONENT_PATH_PARTS):
+        return
+
     visible_bodies = [body for body in component.bRepBodies if body.isVisible]
     body_matches = [(body, find_custom_part(body.name, custom_parts)) for body in visible_bodies]
     has_recognized_body = any(part_info is not None for _, part_info in body_matches)
@@ -465,10 +478,6 @@ def process_component(component, component_path, parts_list, custom_parts, unrec
         largest_dimension, xyz_dimensions = calculate_body_dimensions_from_vertices(body)
 
         if part_info is None:
-            # Ignore unrecognized parts that are part of the printed-milled parts assembly or printed drill guides.
-            if component_path and ("printed-milled parts:1" in component_path.lower() or "printed drill guides:1" in component_path.lower()):
-                continue
-
             # Collect unrecognized parts (count by body name + dimensions)
             display_name = body.name if body.name else "Unnamed Body"
             key_unrec = (display_name, xyz_dimensions, component_path)
