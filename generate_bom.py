@@ -420,6 +420,24 @@ def normalize_name(s):
     return re.sub(r'[^0-9a-z]', '', s.lower())
 
 
+def find_custom_part(name, custom_parts):
+    """Return the custom part definition matching a body name, if any."""
+    name_norm = normalize_name(name)
+    for custom_key, custom_value in custom_parts.items():
+        candidates = [custom_key] + (custom_value.get("aliases", []) or [])
+        if any(name_norm.startswith(normalize_name(candidate)) for candidate in candidates):
+            return custom_value
+
+    return None
+
+
+def is_generic_body_name(name):
+    """Return whether a Fusion body has an automatically generated name."""
+    if not name:
+        return True
+    return re.fullmatch(r"body(?:\d+)?(?:\s*\(\d+\))*", name.strip(), re.IGNORECASE) is not None
+
+
 def process_component(component, component_path, parts_list, custom_parts, unrecognized_parts):
     """
     Processes a component and its bodies, aggregating counts for custom parts.
@@ -432,23 +450,16 @@ def process_component(component, component_path, parts_list, custom_parts, unrec
     Returns:
         None
     """
-    for body in component.bRepBodies:
-        if not body.isVisible:
-            continue
+    visible_bodies = [body for body in component.bRepBodies if body.isVisible]
+    body_matches = [(body, find_custom_part(body.name, custom_parts)) for body in visible_bodies]
+    has_recognized_body = any(part_info is not None for _, part_info in body_matches)
 
-        # Check for custom part matches using normalization and optional aliases
-        body_name_norm = normalize_name(body.name)
-        part_info = None
-        for custom_key, custom_value in custom_parts.items():
-            candidates = [custom_key]
-            if isinstance(custom_value, dict):
-                candidates += custom_value.get("aliases", []) or []
-            for cand in candidates:
-                if body_name_norm.startswith(normalize_name(cand)):
-                    part_info = custom_value
-                    break
-            if part_info:
-                break
+    for body, part_info in body_matches:
+        # Imported hardware often consists of one properly named body plus
+        # several bodies named Body1, Body2 (1), etc. Those generic siblings do
+        # not represent additional BOM items.
+        if part_info is None and has_recognized_body and is_generic_body_name(body.name):
+            continue
 
         # Calculate the largest dimension and XxYxZ dimensions for reporting
         largest_dimension, xyz_dimensions = calculate_body_dimensions_from_vertices(body)
