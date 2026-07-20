@@ -3,38 +3,46 @@ import csv
 import re
 
 
+IGNORED_COMPONENT_PATH_PARTS = (
+    "cutting area",
+    "plywood",
+    "printed-milled parts:1",
+    "printed drill guides:1",
+)
+
+
 CUSTOM_PARTS = {
     "m4x8 Pan Head": {
         "name": "M4x8 Pan Head",
-        "description": "",
+        "description": "M4 pan-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m4x12": {
         "name": "M4x12",
-        "description": "",
+        "description": "M4 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m4x16": {
         "name": "M4x16",
-        "description": "",
+        "description": "M4 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m5x12": {
         "name": "M5x12",
-        "description": "",
+        "description": "M5 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m5x20": {
         "name": "M5x20",
-        "description": "",
+        "description": "M5 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
@@ -42,255 +50,401 @@ CUSTOM_PARTS = {
     },    
     "m6x12": {
         "name": "M6x12",
-        "description": "",
+        "description": "M6 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m6x20": {
         "name": "M6x20",
-        "description": "",
+        "description": "M6 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m6x30": {
         "name": "M6x30",
-        "description": "",
+        "description": "M6 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m6x50": {
         "name": "M6x50",
-        "description": "",
+        "description": "M6 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m8x8 grub": {
         "name": "M8x8 Grub",
-        "description": "",
+        "description": "M8 grub screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m8x45": {
         "name": "M8x45",
-        "description": "",
+        "description": "M8 Hex socket-head screw",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },    
     "x m5 threaded rod": {
         "name": "X M5 Threaded Rod",
-        "description": "",
+        "description": "X-axis threaded rod",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "y m5 threaded rod": {
         "name": "Y M5 Threaded Rod",
-        "description": "",
+        "description": "Y-axis threaded rod",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m5 nut": {
         "name": "M5 Nut",
-        "description": "",
+        "description": "M5 hex nut",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "x m6 threaded rod": {
         "name": "X M6 Threaded Rod",
-        "description": "",
+        "description": "X-axis threaded rod",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "y m6 threaded rod": {
         "name": "Y M6 Threaded Rod",
-        "description": "",
+        "description": "Y-axis threaded rod",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m6 nut": {
         "name": "M6 Nut",
-        "description": "",
+        "description": "M6 hex nut",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m5 washer": {
         "name": "M5 Washer",
-        "description": "",
+        "description": "M5 flat washer",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "m6 washer": {
         "name": "M6 Washer",
-        "description": "",
+        "description": "M6 flat washer",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "x hgr20 rail": {
         "name": "X HGR20 Rail",
-        "description": "",
+        "description": "X-axis linear rail",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": 2,
     },
     "y hgr20 rail": {
         "name": "Y HGR20 Rail",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": False,
-        "override_quantity": False,
-    },
-    "y2 hgr20 rail": {
-        "name": "Y2 HGR20 Rail",
-        "description": "",
+        "description": "Y-axis linear rail",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "1z hgr20 rail": {
         "name": "1Z HGR20 Rail",
-        "description": "",
+        "description": "Z-axis linear rail",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": 2,
     },
     "2z hgr15 rail": {
         "name": "2Z HGR15 Rail",
-        "description": "",
+        "description": "Z-axis linear rail",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": 2,
     },
     "hgh15ca": {
         "name": "HGH15CA slider block",
-        "description": "",
+        "description": "HGR15 carriage block",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },    
     "hgw20cc": {
         "name": "HGW20CC slider block",
-        "description": "",
+        "description": "HGR20 carriage block",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },    
     "y 1610 ballscrew": {
         "name": "Y 1610 Ballscrew",
-        "description": "",
+        "description": "Y-axis ballscrew",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "y 2010 ballscrew": {
         "name": "Y 2010 Ballscrew",
-        "description": "",
+        "description": "Y-axis ballscrew",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "x 1610 ballscrew": {
         "name": "X 1610 Ballscrew",
-        "description": "",
+        "description": "X-axis ballscrew",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "x 2010 ballscrew": {
         "name": "X 2010 Ballscrew",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": False,
-        "override_quantity": False,
-    },
-    "y2 1610 ballscrew": {
-        "name": "Y2 1610 Ballscrew",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": False,
-        "override_quantity": False,
-    },
-    "y2 2010 ballscrew": {
-        "name": "Y2 2010 Ballscrew",
-        "description": "",
+        "description": "X-axis ballscrew",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
     "z 1204 ballscrew": {
         "name": "Z 1204 Ballscrew",
-        "description": "",
+        "description": "Z-axis ballscrew",
         "show_length": True,
         "show_dimensions": False,
         "override_quantity": False,
     },
-    "80mm spindle clamp": {
-        "name": "80mm Spindle Clamp",
-        "description": "",
+    "m6 flush grease fitting": {
+        "name": "M6 Flush Grease Fitting",
+        "description": "Flush grease fitting",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
+    },
+    "m6-1.0 90 grease fitting": {
+        "name": "M6-1.0 90° Grease Fitting",
+        "description": "Right-angle grease fitting",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "hm12-57": {
+        "name": "HM12-57 Ballscrew Mount",
+        "description": "1610 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "hm15-57": {
+        "name": "HM15-57 Ballscrew Mount",
+        "description": "2010 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "hm10-57": {
+        "name": "HM10-57 Ballscrew Mount",
+        "description": "1204 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bk10": {
+        "name": "BK10 Ballscrew Mount",
+        "description": "1204 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bk12": {
+        "name": "BK12 Ballscrew Mount",
+        "description": "1610 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bk15": {
+        "name": "BK15 Ballscrew Mount",
+        "description": "2010 ballscrew fixed mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bf12": {
+        "name": "BF12 Ballscrew Mount",
+        "description": "Ballscrew support mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "bf15": {
+        "name": "BF15 Ballscrew Mount",
+        "description": "2010 ballscrew support mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "d30l40 8-10mm coupler": {
+        "name": "D30L40 8-10mm Coupler",
+        "description": "Motor-to-ballscrew coupler",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "d30l40 8-12mm coupler": {
+        "name": "D30L40 8-12mm Coupler",
+        "description": "Motor-to-ballscrew coupler",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "d25l30 8-8mm coupler": {
+        "name": "D25L30 8-8mm Coupler",
+        "description": "Motor-to-ballscrew coupler",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "sfu1610 nut": {
+        "name": "SFU1610 Ballscrew Nut",
+        "description": "1610 ballscrew nut",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "sfu2010 nut": {
+        "name": "SFU2010 Ballscrew Nut",
+        "description": "2010 ballscrew nut",
+        "show_length": False,
+        "show_dimensions": False,
+        # The X-axis nut body is generically named "Body1" in V4.0.37.
+        "override_quantity": 3,
+    },
+    # Keep the more specific nut-block entry before the nut entry because names
+    # are matched by prefix after normalization.
+    "sfu1204 ballscrew nut block 22mm bore": {
+        "name": "SFU1204 Ballscrew Nut Block (22mm Bore)",
+        "description": "1204 nut mounting block",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "sfu1204 ballscrew nut": {
+        "name": "SFU1204 Ballscrew Nut",
+        "description": "1204 ballscrew nut",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "nema23 stepper": {
+        "name": "NEMA23 Stepper Motor and Driver",
+        "description": "Axis stepper motor and driver",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "m8 npn-nc inductive sensor": {
+        "name": "M8 NPN-NC Inductive Sensor",
+        "description": "Inductive limit sensor",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "80mm 3 hole spindle clamp": {
+        "name": "80mm 3-Hole Spindle Clamp",
+        "description": "80mm spindle mount",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+    },
+    "wasteboard": {
+        "name": "Wasteboard",
+        "description": "Replaceable work surface",
+        "show_length": False,
+        "show_dimensions": True,
+        "override_quantity": False,
+        "category": "fabricated",
+    },
+    "xrollershim": {
+        "name": "X Roller Shim",
+        "description": "X-roller alignment shim",
+        "show_length": False,
+        "show_dimensions": True,
+        "override_quantity": False,
+        "category": "fabricated",
+    },
+    "1z plate": {
+        "name": "1Z Plate",
+        "description": "Single-carriage Z plate",
+        "show_length": False,
+        "show_dimensions": True,
+        "override_quantity": False,
+        "category": "fabricated",
     },
     "xframe tubing": {
         "name": "Steel: X Frame Tubing",
-        "description": "",
+        "description": "X-frame steel tubing",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "yframe tubing": {
         "name": "Steel: Y Frame Tubing",
-        "description": "",
+        "description": "Y-frame steel tubing",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "yroller tubing": {
         "name": "Steel: Y Roller Tubing",
-        "description": "",
+        "description": "Y-roller steel tubing",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "yroller brace": {
         "name": "Steel: Y Roller Brace",
-        "description": "",
+        "description": "Y-roller steel brace",
         "show_length": False,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xgantry tubing": {
         "name": "Steel: X Gantry Tubing",
-        "description": "",
+        "description": "X-gantry steel tubing",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xroller tubing": {
         "name": "Steel: X Roller Tubing",
-        "description": "",
+        "description": "X-roller steel tubing",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
     "xroller angle": {
         "name": "Steel: X Roller Angle",
-        "description": "",
+        "description": "X-roller steel angle",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
+        "category": "fabricated",
     },
 }
 
@@ -340,6 +494,24 @@ def normalize_name(s):
     return re.sub(r'[^0-9a-z]', '', s.lower())
 
 
+def find_custom_part(name, custom_parts):
+    """Return the custom part definition matching a body name, if any."""
+    name_norm = normalize_name(name)
+    for custom_key, custom_value in custom_parts.items():
+        candidates = [custom_key] + (custom_value.get("aliases", []) or [])
+        if any(name_norm.startswith(normalize_name(candidate)) for candidate in candidates):
+            return custom_value
+
+    return None
+
+
+def is_generic_body_name(name):
+    """Return whether a Fusion body has an automatically generated name."""
+    if not name:
+        return True
+    return re.fullmatch(r"body(?:\d+)?(?:\s*\(\d+\))*", name.strip(), re.IGNORECASE) is not None
+
+
 def process_component(component, component_path, parts_list, custom_parts, unrecognized_parts):
     """
     Processes a component and its bodies, aggregating counts for custom parts.
@@ -352,32 +524,26 @@ def process_component(component, component_path, parts_list, custom_parts, unrec
     Returns:
         None
     """
-    for body in component.bRepBodies:
-        if not body.isVisible:
-            continue
+    # Reference geometry, temporary parts, and fabrication guides are not BOM items.
+    component_path_lower = component_path.lower()
+    if any(path_part in component_path_lower for path_part in IGNORED_COMPONENT_PATH_PARTS):
+        return
 
-        # Check for custom part matches using normalization and optional aliases
-        body_name_norm = normalize_name(body.name)
-        part_info = None
-        for custom_key, custom_value in custom_parts.items():
-            candidates = [custom_key]
-            if isinstance(custom_value, dict):
-                candidates += custom_value.get("aliases", []) or []
-            for cand in candidates:
-                if body_name_norm.startswith(normalize_name(cand)):
-                    part_info = custom_value
-                    break
-            if part_info:
-                break
+    visible_bodies = [body for body in component.bRepBodies if body.isVisible]
+    body_matches = [(body, find_custom_part(body.name, custom_parts)) for body in visible_bodies]
+    has_recognized_body = any(part_info is not None for _, part_info in body_matches)
+
+    for body, part_info in body_matches:
+        # Imported hardware often consists of one properly named body plus
+        # several bodies named Body1, Body2 (1), etc. Those generic siblings do
+        # not represent additional BOM items.
+        if part_info is None and has_recognized_body and is_generic_body_name(body.name):
+            continue
 
         # Calculate the largest dimension and XxYxZ dimensions for reporting
         largest_dimension, xyz_dimensions = calculate_body_dimensions_from_vertices(body)
 
         if part_info is None:
-            # Ignore unrecognized parts that are part of the printed-milled parts assembly or printed drill guides.
-            if component_path and ("printed-milled parts:1" in component_path.lower() or "printed drill guides:1" in component_path.lower()):
-                continue
-
             # Collect unrecognized parts (count by body name + dimensions)
             display_name = body.name if body.name else "Unnamed Body"
             key_unrec = (display_name, xyz_dimensions, component_path)
@@ -436,31 +602,47 @@ def export_parts_list_to_csv(parts_list, custom_parts, unrecognized_parts, model
             file_path = file_dialog.filename
 
             with open(file_path, "w", newline="") as csvfile:
+                # Tell Excel to use commas regardless of the system list separator.
+                csvfile.write("sep=,\n")
                 csv_writer = csv.writer(csvfile)
 
                 # Header section
-                csv_writer.writerow(["Model:", model_name])
-                csv_writer.writerow(["Cutting Area:", cutting_area])
+                csv_writer.writerow([f"Model: {model_name}"])
+                csv_writer.writerow([f"Cutting Area: {cutting_area}"])
                 csv_writer.writerow([])
 
-                # Write the header
-                csv_writer.writerow(["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)"])
+                def write_parts_section(title, category):
+                    csv_writer.writerow([title])
+                    csv_writer.writerow(
+                        ["Position", "Name", "Description", "Quantity", "Length (mm)", "Dimensions (mm)"]
+                    )
 
-                position = 1
-                for custom_key in custom_parts.keys():
-                    for (name, description, length, dimensions), quantity in parts_list.items():
-                        if name == custom_parts[custom_key]["name"]:
-                            csv_writer.writerow(
-                                [
-                                    position,
-                                    name,
-                                    description,
-                                    quantity,
-                                    length if length is not None else "",
-                                    dimensions if dimensions is not None else "",
-                                ]
-                            )
-                            position += 1
+                    position = 1
+                    for custom_key, custom_part in custom_parts.items():
+                        if custom_part.get("category", "purchased") != category:
+                            continue
+
+                        for (name, description, length, dimensions), quantity in parts_list.items():
+                            if name == custom_part["name"]:
+                                csv_writer.writerow(
+                                    [
+                                        position,
+                                        name,
+                                        description,
+                                        quantity,
+                                        length if length is not None else "",
+                                        dimensions if dimensions is not None else "",
+                                    ]
+                                )
+                                position += 1
+
+                write_parts_section("Purchased Components", "purchased")
+                csv_writer.writerow([])
+                csv_writer.writerow([])
+                write_parts_section(
+                    "Locally Sourced & Fabricated Parts",
+                    "fabricated",
+                )
 
                 # Write unrecognized parts (if any)
                 if unrecognized_parts:
