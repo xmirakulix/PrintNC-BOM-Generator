@@ -6,17 +6,23 @@ A Python-based tool to automate the creation of detailed Bills of Materials (BOM
 
 ## Features
 
-- **Automated BOM Generation**: Automatically scans components and generates a detailed BOM.
-- **Customizable Part Data**: Use a configurable dictionary to manage part names, descriptions, and display options.
+- **Automated BOM Generation**: Recursively scans the full component hierarchy from the root component and generates a detailed BOM.
+- **Customizable Part Data**: Use a configurable `CUSTOM_PARTS` dictionary to manage part names, descriptions, and display options.
+- **Flexible Name Matching**: Body names are normalized (lowercased, non-alphanumerics stripped) and matched by prefix. Optional `aliases` let one part definition match several body names.
 - **Dimension and Length Calculation**: Calculates the largest dimension or detailed dimensions (XxYxZ) for parts based on configuration.
-- **CSV Export**: Exports the BOM to a structured CSV file for further use.
-- **BOM Sorted by CUSTOM_PARTS dict**: The BOM is sorted by the CUSTOM_PARTS dict.
+- **Generic-Body Filtering**: Imported hardware often ships as one named body plus siblings named `Body1`, `Body (2)`, etc. These generic siblings are skipped so they don't inflate quantities.
+- **Ignored Components**: Reference geometry, temporary parts, and fabrication guides (e.g. cutting area, plywood, drill guides) are excluded from the BOM.
+- **Purchased vs. Fabricated Sections**: Parts are split into *Purchased Components* and *Locally Sourced & Fabricated Parts* based on each part's `category`.
+- **Unrecognized Parts Report**: Bodies that don't match any custom part are listed in a separate section (with their model path) so model changes can be spotted.
+- **Model & Cutting-Area Header**: The CSV header includes the model name and the cutting area read from the `XCuttingArea` / `YCuttingArea` Fusion parameters.
+- **CSV Export**: Exports the BOM to a structured CSV file, prefixed with a `sep=,` directive so Excel opens it correctly regardless of the system list separator.
+- **BOM Sorted by CUSTOM_PARTS dict**: Within each section, parts appear in the order they are defined in `CUSTOM_PARTS`.
 
 ---
 
 ## Installation
 
-Either ollow the fusion 360 manual for creating a new script (https://help.autodesk.com/view/fusion360/ENU/?guid=GUID-9701BBA7-EC0E-4016-A9C8-964AA4838954)
+Follow the Fusion 360 manual for creating a new script and paste in `generate_bom.py`: https://help.autodesk.com/view/fusion360/ENU/?guid=GUID-9701BBA7-EC0E-4016-A9C8-964AA4838954
 
 ## Usage
 
@@ -33,53 +39,76 @@ Either ollow the fusion 360 manual for creating a new script (https://help.autod
 
 ## Configuration
 
-The tool uses a configurable `custom_parts` dictionary to define:
+The tool uses a `CUSTOM_PARTS` dictionary (defined at the top of `generate_bom.py`) to define each part. The **key** is a normalized lowercase string matched against the start of each body's name. Each value supports:
 
-- **Part Name**: A readable name for the part (e.g., `"M5 Nut"`).
-- **Description**: Additional information about the part.
-- **Show Length**: Whether to display the largest dimension (`True` or `False`).
-- **Show Dimensions**: Whether to display full dimensions in `XxYxZ` format (`True` or `False`).
-- **Override Quantity**: If `False` the quantity will be aggregated, else if an integer value greater `0` is provided, the given value will be used for the quantity of this parts.
-- **Category**: Optional `"purchased"` or `"fabricated"`; defaults to `"purchased"`.
+- **name**: A readable name for the part shown in the BOM (e.g., `"M5 Nut"`).
+- **description**: Additional information about the part.
+- **show_length**: Whether to display the largest dimension in mm (`True` or `False`).
+- **show_dimensions**: Whether to display full dimensions in `XxYxZ` format (`True` or `False`).
+- **override_quantity**: If `False`, the quantity is aggregated by counting matching bodies. If an integer `> 0` is provided, that fixed value is used as the quantity instead.
+- **category** *(optional)*: `"purchased"` or `"fabricated"`; defaults to `"purchased"`.
+- **aliases** *(optional)*: A list of additional key strings that should also match this part.
 
-### Example `custom_parts` Entry
+> **Note:** Matching is by normalized prefix, so define more specific keys before more general ones (e.g. `"sfu1204 ballscrew nut block 22mm bore"` before `"sfu1204 ballscrew nut"`).
+
+### Example `CUSTOM_PARTS` Entries
 
 ```python
-custom_parts = {
+CUSTOM_PARTS = {
     "m5 nut": {
         "name": "M5 Nut",
-        "description": "Standard nut for M5 threads",
+        "description": "M5 hex nut",
         "show_length": False,
         "show_dimensions": False,
         "override_quantity": False,
     },
+    "m5x20": {
+        "name": "M5x20",
+        "description": "M5 Hex socket-head screw",
+        "show_length": False,
+        "show_dimensions": False,
+        "override_quantity": False,
+        "aliases": ["m5-20"],
+    },
+    "1z hgr20 rail": {
+        "name": "1Z HGR20 Rail",
+        "description": "Z-axis linear rail",
+        "show_length": True,
+        "show_dimensions": False,
+        "override_quantity": 2,
+    },
     "xframe tubing": {
-        "name": "XFrame Tubing",
-        "description": "Tubing for the X-axis frame",
+        "name": "Steel: X Frame Tubing",
+        "description": "X-frame steel tubing",
         "show_length": True,
         "show_dimensions": True,
         "override_quantity": False,
         "category": "fabricated",
     },
-    "1z hgr20 rail": {
-        "name": "1Z HGR20 Rail",
-        "description": "",
-        "show_length": True,
-        "show_dimensions": False,
-        "override_quantity": 2,
 }
 ```
+
+Components whose path contains any of the entries in `IGNORED_COMPONENT_PATH_PARTS`
+(e.g. cutting area, plywood, printed/milled parts, drill guides) are skipped entirely.
 
 ---
 
 ## Output
 
-The exported CSV file includes the following columns:
+The exported CSV starts with a `sep=,` line (for Excel) followed by a header with the model name and cutting area, then the parts grouped into sections:
 
-| **Position** | **Name**        | **Description**             | **Quantity** | **Length (mm)** | **Dimensions (mm)** |
-| ------------ | --------------- | --------------------------- | ------------ | --------------- | ------------------- |
-| 1            | M5 Threaded Rod | Threaded rod with M5 thread | 5            | 300.0           |                     |
-| 2            | XFrame Tubing   | Tubing for the X-axis frame | 2            | 500.0           | 500.0x50.0x50.0     |
+1. **Purchased Components** — parts with `category` `"purchased"` (the default).
+2. **Locally Sourced & Fabricated Parts** — parts with `category` `"fabricated"`.
+3. **Unrecognized Parts** — bodies that matched no custom part, listed with their model path (only relevant when the Fusion model changes; can usually be ignored).
+
+Each parts section uses the following columns:
+
+| **Position** | **Name**            | **Description**   | **Quantity** | **Length (mm)** | **Dimensions (mm)** |
+| ------------ | ------------------- | ----------------- | ------------ | --------------- | ------------------- |
+| 1            | X M5 Threaded Rod   | X-axis threaded rod | 5          | 300.0           |                     |
+| 2            | Steel: X Frame Tubing | X-frame steel tubing | 2       | 500.0           | 500 x 50 x 50       |
+
+The Unrecognized Parts section adds a trailing **Path** column showing where each unmatched body lives in the component tree.
 
 ---
 
